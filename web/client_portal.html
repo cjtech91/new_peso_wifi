@@ -62,7 +62,7 @@
             position: relative;
             overflow: hidden;
             display: block;
-            background: #ffffff;
+            background: linear-gradient(135deg, #1f2937 0%, #0ea5e9 50%, #22c55e 100%);
         }
 
         .portal-status-pill {
@@ -79,18 +79,25 @@
             backdrop-filter: blur(10px);
             z-index: 3;
             color: var(--text-muted);
+            font-size: 1.1rem;
         }
 
         .status-header {
-            padding: 6px 16px 6px;
+            padding: 8px 16px 2px;
             background: #ffffff;
         }
 
         .status-text {
-            font-size: 1.12rem;
+            font-size: 1.02rem;
             font-weight: 700;
             color: var(--text-muted);
             margin-top: 0;
+        }
+
+        .status-subtext {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 4px;
         }
 
         .info-row-compact {
@@ -124,6 +131,32 @@
             margin: 5px 0;
             white-space: nowrap;
             text-shadow: 0 2px 4px rgba(0,0,0,0.25);
+        }
+
+        .vendor-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .vendor-select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            padding: 8px 32px 8px 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #ffffff;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+            background-image: linear-gradient(45deg, transparent 50%, #9CA3AF 50%), linear-gradient(135deg, #9CA3AF 50%, transparent 50%);
+            background-position: calc(100% - 18px) calc(1em + 2px), calc(100% - 13px) calc(1em + 2px);
+            background-size: 5px 5px, 5px 5px;
+            background-repeat: no-repeat;
         }
 
         .actions {
@@ -180,10 +213,6 @@
 
         .btn-rates {
             background: var(--primary);
-        }
-
-        .btn-pause {
-            background: var(--danger);
         }
 
         .btn-points {
@@ -245,12 +274,13 @@
     <div class="container">
         <div class="portal-banner">
             <div class="portal-status-pill">
-                <span>WiFi</span>
+                <span>×</span>
             </div>
         </div>
 
         <div class="status-header">
-            <div class="status-text">Piso WiFi Client Portal</div>
+            <div class="status-text">Disconnected</div>
+            <div class="status-subtext">Thank you for choosing CJTECH</div>
         </div>
 
         <div class="main-display">
@@ -260,12 +290,18 @@
                 <span>MAC: <span>...</span></span>
             </div>
             <div class="timer-value">00:00:00</div>
+            <div class="vendor-row">
+                <select class="vendor-select" aria-label="Vendo">
+                    <option selected>Main Vendo</option>
+                    <option>Vendo 2</option>
+                    <option>Vendo 3</option>
+                </select>
+            </div>
         </div>
 
         <div class="actions action-grid">
             <div class="action-col-left">
                 <button class="btn btn-rates" type="button">Wifi Rates</button>
-                <button class="btn btn-pause" type="button">Pause Time</button>
                 <button class="btn btn-points" type="button">Redeem Points</button>
                 <button class="btn btn-free-time" type="button">Free Time</button>
             </div>
@@ -283,4 +319,3 @@
     <div class="developer-footer">POWERED BY CJTECH</div>
 </body>
 </html>
-

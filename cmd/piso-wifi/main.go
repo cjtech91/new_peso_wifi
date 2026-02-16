@@ -23,7 +23,7 @@ func main() {
 	}
 	detectedBoard = board
 
-	tmplPath := filepath.Join(executableDir(), "web", "client_portal.html")
+	tmplPath := filepath.Join(workDir(), "web", "client_portal.html")
 	t, err := template.ParseFiles(tmplPath)
 	if err != nil {
 		log.Fatalf("parse client template: %v", err)
@@ -58,6 +58,15 @@ func executableDir() string {
 		return "."
 	}
 	return filepath.Dir(exe)
+}
+
+func workDir() string {
+	// Prefer the current working directory (e.g., systemd WorkingDirectory),
+	// fall back to the executable directory if unavailable.
+	if wd, err := os.Getwd(); err == nil {
+		return wd
+	}
+	return executableDir()
 }
 
 func clientPortalHandler(w http.ResponseWriter, r *http.Request) {
