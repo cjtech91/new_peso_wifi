@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
 	"os"
@@ -69,10 +70,11 @@ func voucherHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	code := r.Form.Get("code")
+	safeCode := html.EscapeString(code)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprintf(w, "<!DOCTYPE html><html><head><title>Voucher</title></head><body>")
 	fmt.Fprintf(w, "<h1>Voucher Submitted</h1>")
-	fmt.Fprintf(w, "<p>Code: %s</p>", code)
+	fmt.Fprintf(w, "<p>Code: %s</p>", safeCode)
 	fmt.Fprintf(w, "<p>Voucher validation and time credit logic is not implemented yet.</p>")
 	fmt.Fprintf(w, "<a href='/'>Back to portal</a>")
 	fmt.Fprintf(w, "</body></html>")
