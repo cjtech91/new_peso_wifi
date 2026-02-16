@@ -15,7 +15,7 @@ This document describes how to deploy the `piso-wifi` binary on supported hardwa
 2. Clone the repository:
    ```bash
    cd /opt
-   sudo git clone https://github.com/cjtech-nads/new_peso_wifi.git
+   sudo git clone https://github.com/cjtech91/new_peso_wifi.git
    sudo chown -R "$USER":"$USER" new_peso_wifi
    cd new_peso_wifi
    ```
@@ -115,7 +115,7 @@ Choose a directory for the source, e.g. `/opt`:
 
 ```bash
 cd /opt
-sudo git clone https://github.com/cjtech-nads/new_peso_wifi.git
+sudo git clone https://github.com/cjtech91/new_peso_wifi.git
 sudo chown -R "$USER":"$USER" new_peso_wifi
 cd new_peso_wifi
 ```
@@ -149,7 +149,7 @@ piso-wifi -h 2>/dev/null || echo "binary available"
 
 ### 5.1. Standard SBC (Orange Pi / NanoPi / Raspberry Pi)
 
-Run the binary as root so it can access `/sys/class/gpio`:
+Run the binary as root so it can access `/sys/class/gpio` and bind to the HTTP port:
 
 ```bash
 sudo /usr/local/bin/piso-wifi
@@ -158,14 +158,20 @@ sudo /usr/local/bin/piso-wifi
 Expected behavior:
 
 - The application detects the board based on `/proc/device-tree/compatible`.
-- It prints the detected board name and ID.
-- If the board has GPIO support, it activates the relay pin as defined for that platform.
+- It starts an HTTP server (default on `:8080`, configurable with `PISO_HTTP_ADDR`).
+- If the board has GPIO support, GPIO control is available to the process.
 
-Example output:
+Client and admin portals:
 
-```text
-Detected board: Orange Pi One (Orange Pi One)
-```
+- Client portal (voucher/coin UI):
+  - URL: `http://DEVICE_IP:8080/`
+  - Shows the board name and a simple form to submit a voucher code.
+- Admin portal:
+  - URL: `http://DEVICE_IP:8080/admin`
+  - Basic page with board information and a link to JSON status.
+- Admin JSON status:
+  - URL: `http://DEVICE_IP:8080/admin/status`
+  - Returns a JSON document with the detected board configuration.
 
 ### 5.2. Generic x86_64 (development / simulation)
 
@@ -181,14 +187,7 @@ Run:
 ./piso-wifi
 ```
 
-Expected output:
-
-```text
-Detected board: Generic x86_64 (Generic x86_64)
-GPIO not available on this platform, running in simulation mode
-```
-
-No GPIO writes are performed in this mode.
+The HTTP server still runs (default `:8080`), but GPIO is disabled in this mode.
 
 ## 6. Forcing a Specific Board (Override)
 
