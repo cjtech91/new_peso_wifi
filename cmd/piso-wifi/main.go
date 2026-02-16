@@ -4,17 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/cjtech-nads/new_peso_wifi/internal/hardware"
 )
 
 var detectedBoard hardware.BoardConfig
-var clientTemplate *template.Template
 
 func main() {
 	board, err := hardware.DetectBoard()
@@ -22,13 +19,6 @@ func main() {
 		log.Fatalf("detect board: %v", err)
 	}
 	detectedBoard = board
-
-	tmplPath := filepath.Join(workDir(), "web", "client_portal.html")
-	t, err := template.ParseFiles(tmplPath)
-	if err != nil {
-		log.Fatalf("parse client template: %v", err)
-	}
-	clientTemplate = t
 
 	fmt.Printf("Detected board: %s (%s)\n", board.Name, board.ID)
 	if !board.HasGPIO {
@@ -52,23 +42,6 @@ func main() {
 	}
 }
 
-func executableDir() string {
-	exe, err := os.Executable()
-	if err != nil {
-		return "."
-	}
-	return filepath.Dir(exe)
-}
-
-func workDir() string {
-	// Prefer the current working directory (e.g., systemd WorkingDirectory),
-	// fall back to the executable directory if unavailable.
-	if wd, err := os.Getwd(); err == nil {
-		return wd
-	}
-	return executableDir()
-}
-
 func clientPortalHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -76,9 +49,15 @@ func clientPortalHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := clientTemplate.Execute(w, nil); err != nil {
-		http.Error(w, "template error", http.StatusInternalServerError)
-	}
+	fmt.Fprintf(w, "<!DOCTYPE html><html><head><title>Piso WiFi Portal</title></head><body>")
+	fmt.Fprintf(w, "<h1>Piso WiFi Client Portal</h1>")
+	fmt.Fprintf(w, "<p>Board: %s (%s)</p>", detectedBoard.Name, detectedBoard.ID)
+	fmt.Fprintf(w, "<p>Insert coin or enter voucher code to get internet access.</p>")
+	fmt.Fprintf(w, "<form method='POST' action='/voucher'>")
+	fmt.Fprintf(w, "<label>Voucher code: <input name='code' autofocus></label>")
+	fmt.Fprintf(w, "<button type='submit'>Submit</button>")
+	fmt.Fprintf(w, "</form>")
+	fmt.Fprintf(w, "</body></html>")
 }
 
 func voucherHandler(w http.ResponseWriter, r *http.Request) {
