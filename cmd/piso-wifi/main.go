@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 )
 
 var detectedBoard hardware.BoardConfig
+var clientTemplate *template.Template
 
 func main() {
 	board, err := hardware.DetectBoard()
@@ -19,6 +21,12 @@ func main() {
 		log.Fatalf("detect board: %v", err)
 	}
 	detectedBoard = board
+
+	t, err := template.ParseFiles("web/client_portal.html")
+	if err != nil {
+		log.Fatalf("parse client template: %v", err)
+	}
+	clientTemplate = t
 
 	fmt.Printf("Detected board: %s (%s)\n", board.Name, board.ID)
 	if !board.HasGPIO {
@@ -49,15 +57,9 @@ func clientPortalHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprintf(w, "<!DOCTYPE html><html><head><title>Piso WiFi Portal</title></head><body>")
-	fmt.Fprintf(w, "<h1>Piso WiFi Client Portal</h1>")
-	fmt.Fprintf(w, "<p>Board: %s (%s)</p>", detectedBoard.Name, detectedBoard.ID)
-	fmt.Fprintf(w, "<p>Insert coin or enter voucher code to get internet access.</p>")
-	fmt.Fprintf(w, "<form method='POST' action='/voucher'>")
-	fmt.Fprintf(w, "<label>Voucher code: <input name='code' autofocus></label>")
-	fmt.Fprintf(w, "<button type='submit'>Submit</button>")
-	fmt.Fprintf(w, "</form>")
-	fmt.Fprintf(w, "</body></html>")
+	if err := clientTemplate.Execute(w, nil); err != nil {
+		http.Error(w, "template error", http.StatusInternalServerError)
+	}
 }
 
 func voucherHandler(w http.ResponseWriter, r *http.Request) {
