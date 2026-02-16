@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/cjtech-nads/new_peso_wifi/internal/hardware"
 )
@@ -22,7 +23,8 @@ func main() {
 	}
 	detectedBoard = board
 
-	t, err := template.ParseFiles("web/client_portal.html")
+	tmplPath := filepath.Join(executableDir(), "web", "client_portal.html")
+	t, err := template.ParseFiles(tmplPath)
 	if err != nil {
 		log.Fatalf("parse client template: %v", err)
 	}
@@ -48,6 +50,14 @@ func main() {
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("http server: %v", err)
 	}
+}
+
+func executableDir() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return "."
+	}
+	return filepath.Dir(exe)
 }
 
 func clientPortalHandler(w http.ResponseWriter, r *http.Request) {
