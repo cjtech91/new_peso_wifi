@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -9,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/cjtech-nads/new_peso_wifi/internal/hardware"
 )
@@ -16,6 +19,8 @@ import (
 var detectedBoard hardware.BoardConfig
 var clientTemplate *template.Template
 var adminTemplate *template.Template
+var adminSessions = map[string]bool{}
+var adminSessionsMu sync.Mutex
 
 func main() {
 	board, err := hardware.DetectBoard()
@@ -46,6 +51,8 @@ func main() {
 	mux.HandleFunc("/", clientPortalHandler)
 	mux.HandleFunc("/voucher", voucherHandler)
 	mux.HandleFunc("/insert-coin", insertCoinHandler)
+	mux.HandleFunc("/admin/login", adminLoginHandler)
+	mux.HandleFunc("/admin/logout", adminLogoutHandler)
 	mux.HandleFunc("/admin", adminPortalHandler)
 	mux.HandleFunc("/admin/status", adminStatusHandler)
 
@@ -120,6 +127,11 @@ func adminPortalHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !isAdminAuthenticated(r) {
+		http.Redirect(w, r, "/admin/login", http.StatusFound)
+		return
+	}
+
 	if adminTemplate != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_ = adminTemplate.Execute(w, nil)
@@ -140,6 +152,11 @@ func adminStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !isAdminAuthenticated(r) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	enc := json.NewEncoder(w)
 	_ = enc.Encode(struct {
@@ -154,4 +171,77 @@ func workDir() string {
 		return wd
 	}
 	return "."
+}
+
+func adminLoginHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		if t, err := template.ParseFiles(filepath.Join(workDir(), "web", "admin_login.html")); err == nil {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_ = t.Execute(w, nil)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Admin Login</title><style>body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f5f6fa;color:#111827} .card{max-width:360px;margin:16px auto;background:#fff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.1)} .head{padding:12px 16px;border-bottom:1px solid #eee;font-weight:700} .content{padding:16px} .field{margin:8px 0} .input{width:100%%;padding:10px;border:1px solid #ddd;border-radius:8px} .btn{width:100%%;padding:12px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;margin-top:8px}</style></head><body>")
+		fmt.Fprintf(w, "<div class='card'><div class='head'>Admin Login</div><div class='content'><form method='POST' action='/admin/login'><div class='field'><input class='input' name='username' placeholder='Username' autofocus></div><div class='field'><input class='input' name='password' type='password' placeholder='Password'></div><button class='btn' type='submit'>Sign In</button></form></div></div></body></html>")
+	case http.MethodPost:
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "invalid form", http.StatusBadRequest)
+			return
+		}
+		u := r.Form.Get("username")
+		p := r.Form.Get("password")
+		if u == "admin" && p == "admin" {
+			tok := newToken()
+			adminSessionsMu.Lock()
+			adminSessions[tok] = true
+			adminSessionsMu.Unlock()
+			http.SetCookie(w, &http.Cookie{
+				Name:     "admin_session",
+				Value:    tok,
+				Path:     "/",
+				HttpOnly: true,
+				SameSite: http.SameSiteLaxMode,
+			})
+			http.Redirect(w, r, "/admin", http.StatusFound)
+			return
+		}
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func adminLogoutHandler(w http.ResponseWriter, r *http.Request) {
+	if c, err := r.Cookie("admin_session"); err == nil {
+		adminSessionsMu.Lock()
+		delete(adminSessions, c.Value)
+		adminSessionsMu.Unlock()
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "admin_session",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.Redirect(w, r, "/admin/login", http.StatusFound)
+}
+
+func isAdminAuthenticated(r *http.Request) bool {
+	c, err := r.Cookie("admin_session")
+	if err != nil {
+		return false
+	}
+	adminSessionsMu.Lock()
+	_, ok := adminSessions[c.Value]
+	adminSessionsMu.Unlock()
+	return ok
+}
+
+func newToken() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }
