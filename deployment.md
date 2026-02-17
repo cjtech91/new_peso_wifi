@@ -94,8 +94,8 @@ Install Go either from the distribution or from the official tarball.
 **Option A: distro packages (simpler, but version may be older)**
 
 ```bash
-sudo apt install -y golang
-go version
+sudo apt update
+sudo apt install -y git build-essential
 ```
 
 **Option B: official Go tarball (recommended if distro Go is outdated)**

@@ -15,6 +15,7 @@ import (
 
 var detectedBoard hardware.BoardConfig
 var clientTemplate *template.Template
+var adminTemplate *template.Template
 
 func main() {
 	board, err := hardware.DetectBoard()
@@ -24,8 +25,16 @@ func main() {
 	detectedBoard = board
 
 	tmplPath := filepath.Join(workDir(), "web", "client_portal.html")
-	if t, err := template.ParseFiles(tmplPath); err == nil {
+	if t, err := template.ParseFiles(tmplPath); err != nil {
+		log.Printf("client template: %v", err)
+	} else {
 		clientTemplate = t
+	}
+	adminPath := filepath.Join(workDir(), "web", "admin.html")
+	if t, err := template.ParseFiles(adminPath); err != nil {
+		log.Printf("admin template: %v", err)
+	} else {
+		adminTemplate = t
 	}
 
 	fmt.Printf("Detected board: %s (%s)\n", board.Name, board.ID)
@@ -111,12 +120,18 @@ func adminPortalHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if adminTemplate != nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_ = adminTemplate.Execute(w, nil)
+		return
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprintf(w, "<!DOCTYPE html><html><head><title>Piso WiFi Admin</title></head><body>")
-	fmt.Fprintf(w, "<h1>Piso WiFi Admin Portal</h1>")
-	fmt.Fprintf(w, "<p>Board: %s (%s)</p>", detectedBoard.Name, detectedBoard.ID)
-	fmt.Fprintf(w, "<p><a href='/admin/status'>View JSON status</a></p>")
-	fmt.Fprintf(w, "</body></html>")
+	fmt.Fprintf(w, "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Piso WiFi Admin</title><style>body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f5f6fa;color:#111827} .card{max-width:720px;margin:16px auto;background:#fff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,.1);overflow:hidden} .head{padding:12px 16px;border-bottom:1px solid #eee;font-weight:700} .content{padding:16px} .row{margin:8px 0} .btn{display:inline-block;padding:10px 14px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;text-decoration:none}</style></head><body>")
+	fmt.Fprintf(w, "<div class='card'><div class='head'>Piso WiFi Admin</div><div class='content'>")
+	fmt.Fprintf(w, "<div class='row'>Board: %s (%s)</div>", detectedBoard.Name, detectedBoard.ID)
+	fmt.Fprintf(w, "<div class='row'><a class='btn' href='/admin/status'>View JSON Status</a> <a class='btn' href='/'>Client Portal</a></div>")
+	fmt.Fprintf(w, "</div></div></body></html>")
 }
 
 func adminStatusHandler(w http.ResponseWriter, r *http.Request) {
